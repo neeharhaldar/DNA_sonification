@@ -63,6 +63,9 @@ function updateSpeedDisplay() {
 async function generateAndPlay() {
   if (!dnaSequence) return;
 
+  const status = document.getElementById("status");
+  status.textContent = "Generating audio...";
+
   let seq = dnaSequence.slice(0, 5000);
   const speed = parseFloat(document.getElementById("speed").value);
   const waveform = document.getElementById("waveform").value;
@@ -93,6 +96,8 @@ async function generateAndPlay() {
   audioPlayer.play();
   downloadBtn.href = url;
   downloadBtn.download = "dna_music.wav";
+
+  status.textContent = "Audio generated.";
 }
 
 // ---------- WAV ----------
