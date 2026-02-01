@@ -2,82 +2,64 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <title>DNA Sonification</title>
+  <title>DNA → Music</title>
+  <script src="https://unpkg.com/tone/build/Tone.js"></script>
   <link rel="stylesheet" href="style.css">
 </head>
 <body>
 
-<div class="container">
-  <h1>DNA Sonification</h1>
-  <p class="subtitle">Convert nucleotide sequences into music</p>
+<h2>DNA → Music</h2>
 
-  <textarea id="inputBox" placeholder="Paste DNA or FASTA sequence here..."></textarea>
+<textarea id="inputBox" placeholder="Paste DNA or FASTA sequence here..."></textarea>
 
-  <div class="buttons">
-    <button onclick="loadInput()">Load Sequence</button>
-    <button onclick="generateAndPlay()">Generate Music</button>
-    <a id="downloadBtn">Download WAV</a>
-  </div>
-
+<div class="panel">
+  <button onclick="loadInput()">Load Sequence</button>
+  <button onclick="playMusic()">Generate Music</button>
+  <button onclick="togglePlay()">Play / Pause</button>
+  <button onclick="downloadAudio()">Download Audio</button>
   <p id="status"></p>
+</div>
 
-  <div class="panel">
-    <h3>Mapping</h3>
-    <div class="row">
-      <label>A</label><select id="noteA">
-        <option value="261.63" selected>C</option>
-        <option value="293.66">D</option>
-        <option value="329.63">E</option>
-        <option value="349.23">F</option>
-        <option value="392.00">G</option>
-        <option value="440.00">A</option>
-      </select>
+<div class="panel">
+  <h3>Base → Note Mapping (Melody)</h3>
+  A → <input id="mapA" value="C4" size="3">
+  T → <input id="mapT" value="D4" size="3">
+  G → <input id="mapG" value="E4" size="3">
+  C → <input id="mapC" value="G4" size="3">
+</div>
 
-      <label>T</label><select id="noteT">
-        <option value="261.63">C</option>
-        <option value="293.66" selected>D</option>
-        <option value="329.63">E</option>
-        <option value="349.23">F</option>
-        <option value="392.00">G</option>
-        <option value="440.00">A</option>
-      </select>
+<div class="panel">
+  <h3>Codon → Chord Mapping (Advanced, optional)</h3>
+  <p>Format: CODON=NOTE,NOTE,NOTE</p>
+  <textarea id="codonMapBox" placeholder="ATG=C3,E3,G3&#10;TAA=A2,C3,E3"></textarea>
+</div>
 
-      <label>G</label><select id="noteG">
-        <option value="261.63">C</option>
-        <option value="293.66">D</option>
-        <option value="329.63" selected>E</option>
-        <option value="349.23">F</option>
-        <option value="392.00">G</option>
-        <option value="440.00">A</option>
-      </select>
+<div class="panel">
+  <h3>Instruments</h3>
+  Melody:
+  <select id="melodyInstrument">
+    <option value="triangle">Flute</option>
+    <option value="sine">Soft Voice</option>
+    <option value="square">Clarinet</option>
+    <option value="sawtooth">Brass</option>
+    <option value="fm">Electric Piano</option>
+    <option value="am">Bell</option>
+  </select>
 
-      <label>C</label><select id="noteC">
-        <option value="261.63">C</option>
-        <option value="293.66">D</option>
-        <option value="329.63">E</option>
-        <option value="349.23" selected>F</option>
-        <option value="392.00">G</option>
-        <option value="440.00">A</option>
-      </select>
-    </div>
+  Chords:
+  <select id="chordInstrument">
+    <option value="sine">Strings (Pad)</option>
+    <option value="triangle">Warm Organ</option>
+    <option value="square">Pipe Organ</option>
+    <option value="sawtooth">Synth Brass</option>
+    <option value="fm">Choir Pad</option>
+    <option value="am">Glass Pad</option>
+  </select>
+</div>
 
-    <h3>Sound</h3>
-    <div class="row">
-      <label>Speed</label>
-      <input type="range" id="speed" min="0.05" max="1" step="0.05" value="0.2" oninput="updateSpeedDisplay()">
-      <span id="speedVal">0.2</span>
-
-      <label>Waveform</label>
-      <select id="waveform">
-        <option value="sine" selected>Sine</option>
-        <option value="square">Square</option>
-        <option value="triangle">Triangle</option>
-        <option value="sawtooth">Sawtooth</option>
-      </select>
-    </div>
-  </div>
-
-  <audio id="audioPlayer" controls></audio>
+<div class="panel">
+  <h3>Tempo</h3>
+  <input type="range" id="tempo" min="60" max="160" value="90">
 </div>
 
 <script src="script.js"></script>

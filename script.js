@@ -1,139 +1,211 @@
 let dnaSequence = "";
+let isPlaying = false;
+
+const inputBox = document.getElementById("inputBox");
+const status = document.getElementById("status");
+const tempoSlider = document.getElementById("tempo");
+
+const melodyInstrumentSelect = document.getElementById("melodyInstrument");
+const chordInstrumentSelect = document.getElementById("chordInstrument");
+
+const mapA = document.getElementById("mapA");
+const mapT = document.getElementById("mapT");
+const mapG = document.getElementById("mapG");
+const mapC = document.getElementById("mapC");
+
+const codonMapBox = document.getElementById("codonMapBox");
+
+// Recorder
+const recorder = new Tone.Recorder();
+Tone.getDestination().connect(recorder);
+
+// Synths
+let melodySynth;
+let chordSynth;
 
 // ---------- INPUT ----------
-
 function loadInput() {
-  const input = document.getElementById("inputBox").value.trim();
+  let input = inputBox.value.trim();
   if (!input) return;
 
-  if (input.includes("\n")) {
-    dnaSequence = parseFasta(input);
-    done("Sequence loaded");
-    return;
-  }
-
-  if (/^[ATGCU\s]+$/i.test(input)) {
-    dnaSequence = input.replace(/U/gi, "T").replace(/\s+/g, "").toUpperCase();
-    done("Sequence loaded");
-    return;
-  }
-
-  document.getElementById("status").textContent = "Invalid input";
-}
-
-// ---------- PARSER ----------
-
-function parseFasta(text) {
-  return text
+  dnaSequence = input
     .split(/\r?\n/)
-    .filter(line => !line.startsWith(">"))
+    .filter(l => !l.startsWith(">"))
     .join("")
     .replace(/U/gi, "T")
     .replace(/[^ATGC]/gi, "")
     .toUpperCase();
+
+  status.textContent = "Sequence loaded.";
 }
 
-function done(msg) {
-  document.getElementById("inputBox").value = dnaSequence;
-  if (dnaSequence.length > 5000) {
-    document.getElementById("status").textContent =
-      msg + " (only first 5000 bases will be played)";
-  } else {
-    document.getElementById("status").textContent = msg;
+// ---------- BASE → NOTE ----------
+function baseToNote(b) {
+  if (b === "A") return mapA.value;
+  if (b === "T") return mapT.value;
+  if (b === "G") return mapG.value;
+  if (b === "C") return mapC.value;
+  return "C4";
+}
+
+// ---------- REAL TRIAD ----------
+function makeMajorTriad(rootNote) {
+  const root = Tone.Frequency(rootNote);
+  return [
+    root.toNote(),
+    root.transpose(4).toNote(),
+    root.transpose(7).toNote()
+  ];
+}
+
+// ---------- PARSE USER CODON MAP ----------
+function parseCodonMappings() {
+  const text = codonMapBox.value.trim();
+  let map = {};
+
+  if (!text) return map;
+
+  const lines = text.split(/\r?\n/);
+  for (let line of lines) {
+    if (!line.includes("=")) continue;
+
+    const [codon, chordStr] = line.split("=");
+    const notes = chordStr.split(",").map(n => n.trim());
+
+    if (/^[ATGC]{3}$/.test(codon) && notes.length >= 3) {
+      map[codon] = notes;
+    }
   }
+  return map;
 }
 
-// ---------- CONTROLS ----------
+// ---------- BUILD SYNTHS ----------
+function buildSynths() {
+  if (melodySynth) melodySynth.dispose();
+  if (chordSynth) chordSynth.dispose();
 
-function getMapping() {
-  return {
-    A: parseFloat(noteA.value),
-    T: parseFloat(noteT.value),
-    G: parseFloat(noteG.value),
-    C: parseFloat(noteC.value)
-  };
+  const melType = melodyInstrumentSelect.value;
+  const chordType = chordInstrumentSelect.value;
+
+  if (melType === "fm") {
+    melodySynth = new Tone.FMSynth().toDestination();
+  } else if (melType === "am") {
+    melodySynth = new Tone.AMSynth().toDestination();
+  } else {
+    melodySynth = new Tone.Synth({
+      oscillator: { type: melType },
+      envelope: {
+        attack: 0.01,
+        decay: 0.2,
+        sustain: 0.2,
+        release: 0.5
+      }
+    }).toDestination();
+  }
+
+  if (chordType === "fm") {
+    chordSynth = new Tone.PolySynth(Tone.FMSynth);
+  } else if (chordType === "am") {
+    chordSynth = new Tone.PolySynth(Tone.AMSynth);
+  } else {
+    chordSynth = new Tone.PolySynth(Tone.Synth, {
+      oscillator: { type: chordType },
+      envelope: {
+        attack: 0.2,
+        decay: 0.5,
+        sustain: 0.6,
+        release: 1.0
+      }
+    });
+  }
+
+  chordSynth.volume.value = -12;
+  const chordFilter = new Tone.Filter(600, "lowpass").toDestination();
+  chordSynth.connect(chordFilter);
 }
 
-function updateSpeedDisplay() {
-  speedVal.textContent = speed.value;
-}
-
-// ---------- AUDIO GENERATION ----------
-
-async function generateAndPlay() {
+// ---------- MUSIC ----------
+async function playMusic() {
   if (!dnaSequence) return;
 
-  const status = document.getElementById("status");
   status.textContent = "Generating audio...";
 
-  let seq = dnaSequence.slice(0, 5000);
-  const speed = parseFloat(document.getElementById("speed").value);
-  const waveform = document.getElementById("waveform").value;
-  const mapping = getMapping();
+  await Tone.start();
+  Tone.Transport.stop();
+  Tone.Transport.cancel();
 
-  const sampleRate = 44100;
-  const duration = seq.length * speed;
-  const ctx = new OfflineAudioContext(1, sampleRate * duration, sampleRate);
+  buildSynths();
+  Tone.Transport.bpm.value = tempoSlider.value;
 
-  let t = 0;
-  for (let base of seq) {
-    const freq = mapping[base];
-    if (!freq) continue;
-    const osc = ctx.createOscillator();
-    osc.type = waveform;
-    osc.frequency.value = freq;
-    osc.connect(ctx.destination);
-    osc.start(t);
-    osc.stop(t + speed);
-    t += speed;
+  const codonMap = parseCodonMappings();
+
+  let melodyEvents = [];
+  let chordEvents = [];
+
+  const step = 0.4;
+  const melodyDur = "4n";
+  const chordDur = "2n";
+
+  for (let i = 0; i < dnaSequence.length; i++) {
+    const note = baseToNote(dnaSequence[i]).replace("4", "5");
+    melodyEvents.push([i * step, note]);
   }
 
-  const buffer = await ctx.startRendering();
-  const wav = bufferToWav(buffer);
-  const url = URL.createObjectURL(wav);
+  let t = 0;
+  for (let i = 0; i < dnaSequence.length - 2; i += 3) {
+    const codon = dnaSequence.slice(i, i + 3);
 
-  audioPlayer.src = url;
-  audioPlayer.play();
-  downloadBtn.href = url;
-  downloadBtn.download = "dna_music.wav";
+    let chord;
+    if (codonMap[codon]) {
+      chord = codonMap[codon];
+    } else {
+      const root = baseToNote(codon[0]).replace("4", "3");
+      chord = makeMajorTriad(root);
+    }
+
+    chordEvents.push([t, chord]);
+    t += step * 3;
+  }
+
+  const melodyPart = new Tone.Part((time, note) => {
+    melodySynth.triggerAttackRelease(note, melodyDur, time);
+  }, melodyEvents);
+
+  const chordPart = new Tone.Part((time, chord) => {
+    chordSynth.triggerAttackRelease(chord, chordDur, time);
+  }, chordEvents);
+
+  melodyPart.start(0);
+  chordPart.start(0);
+
+  recorder.start();
+  Tone.Transport.start();
 
   status.textContent = "Audio generated.";
 }
 
-// ---------- WAV ----------
-
-function bufferToWav(buffer) {
-  const samples = buffer.getChannelData(0);
-  const rate = buffer.sampleRate;
-  const len = samples.length * 2;
-  const buf = new ArrayBuffer(44 + len);
-  const view = new DataView(buf);
-
-  writeString(view, 0, "RIFF");
-  view.setUint32(4, 36 + len, true);
-  writeString(view, 8, "WAVEfmt ");
-  view.setUint32(16, 16, true);
-  view.setUint16(20, 1, true);
-  view.setUint16(22, 1, true);
-  view.setUint32(24, rate, true);
-  view.setUint32(28, rate * 2, true);
-  view.setUint16(32, 2, true);
-  view.setUint16(34, 16, true);
-  writeString(view, 36, "data");
-  view.setUint32(40, len, true);
-  floatTo16(view, 44, samples);
-  return new Blob([buf], { type: "audio/wav" });
-}
-
-function floatTo16(view, offset, input) {
-  for (let i = 0; i < input.length; i++, offset += 2) {
-    let s = Math.max(-1, Math.min(1, input[i]));
-    view.setInt16(offset, s < 0 ? s * 0x8000 : s * 0x7fff, true);
+// ---------- PLAY / PAUSE ----------
+function togglePlay() {
+  if (Tone.Transport.state === "started") {
+    Tone.Transport.pause();
+    status.textContent = "Paused.";
+  } else if (Tone.Transport.state === "paused") {
+    Tone.Transport.start();
+    status.textContent = "Playing...";
   }
 }
 
-function writeString(view, offset, str) {
-  for (let i = 0; i < str.length; i++) {
-    view.setUint8(offset + i, str.charCodeAt(i));
-  }
+// ---------- DOWNLOAD ----------
+async function downloadAudio() {
+  status.textContent = "Exporting audio...";
+
+  const recording = await recorder.stop();
+  const url = URL.createObjectURL(recording);
+
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = "dna_music.wav";
+  a.click();
+
+  status.textContent = "Audio downloaded.";
 }

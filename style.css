@@ -1,98 +1,32 @@
 body {
-  margin: 0;
-  font-family: system-ui, -apple-system, Segoe UI, Roboto, sans-serif;
+  font-family: system-ui, sans-serif;
   background: #0b0f14;
   color: #e0e6ed;
-}
-
-.container {
-  max-width: 900px;
-  margin: auto;
-  padding: 30px;
-}
-
-h1 {
-  font-weight: 600;
-  margin-bottom: 5px;
-}
-
-.subtitle {
-  color: #9fb3c8;
-  margin-bottom: 20px;
+  padding: 20px;
 }
 
 textarea {
   width: 100%;
-  height: 150px;
+  height: 120px;
   background: #05080c;
   color: #7CFC9A;
   border: 1px solid #1e2a38;
-  border-radius: 6px;
-  padding: 12px;
+  padding: 10px;
   font-family: monospace;
-  font-size: 14px;
 }
 
-.buttons {
-  margin-top: 12px;
+select, input, button {
+  margin: 4px;
+  padding: 6px;
 }
 
 button {
-  background: #1f6feb;
-  border: none;
-  border-radius: 5px;
-  padding: 8px 16px;
-  color: white;
-  font-size: 14px;
   cursor: pointer;
-  margin-right: 8px;
-}
-
-button:hover {
-  background: #388bfd;
-}
-
-#downloadBtn {
-  color: #58a6ff;
-  text-decoration: none;
-  margin-left: 10px;
-}
-
-#status {
-  margin-top: 10px;
-  color: #f0c674;
-  font-size: 14px;
 }
 
 .panel {
-  margin-top: 20px;
-  padding: 15px;
+  margin-top: 10px;
+  padding: 10px;
+  border: 1px solid #1e2a38;
   background: #05080c;
-  border: 1px solid #1e2a38;
-  border-radius: 8px;
-}
-
-.row {
-  display: flex;
-  align-items: center;
-  flex-wrap: wrap;
-  gap: 10px;
-}
-
-label {
-  font-size: 13px;
-  color: #9fb3c8;
-}
-
-select, input[type="range"] {
-  background: #0b0f14;
-  color: white;
-  border: 1px solid #1e2a38;
-  border-radius: 4px;
-  padding: 4px;
-}
-
-audio {
-  width: 100%;
-  margin-top: 15px;
 }
