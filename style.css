@@ -5,10 +5,6 @@ body {
   color: #e0e6ed;
 }
 
-body, html{
-    min-height: 100vh;
-}
-
 .container {
   max-width: 900px;
   margin: auto;
@@ -99,12 +95,4 @@ select, input[type="range"] {
 audio {
   width: 100%;
   margin-top: 15px;
-}
-
-canvas {
-  margin-top: 10px;
-  width: 100%;
-  background: black;
-  border: 1px solid #1e2a38;
-  border-radius: 6px;
 }

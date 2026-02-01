@@ -65,7 +65,7 @@ async function generateAndPlay() {
 
   let seq = dnaSequence.slice(0, 5000);
   const speed = parseFloat(document.getElementById("speed").value);
-  const waveform = waveformSelect();
+  const waveform = document.getElementById("waveform").value;
   const mapping = getMapping();
 
   const sampleRate = 44100;
@@ -86,8 +86,6 @@ async function generateAndPlay() {
   }
 
   const buffer = await ctx.startRendering();
-  drawWaveform(buffer);
-
   const wav = bufferToWav(buffer);
   const url = URL.createObjectURL(wav);
 
@@ -96,11 +94,6 @@ async function generateAndPlay() {
   downloadBtn.href = url;
   downloadBtn.download = "dna_music.wav";
 }
-
-function waveformSelect() {
-  return document.getElementById("waveform").value;
-}
-
 
 // ---------- WAV ----------
 
